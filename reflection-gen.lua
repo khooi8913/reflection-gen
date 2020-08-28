@@ -70,7 +70,7 @@ function loadTrafficGenerator(queue, dev, thread, sources, service_port)
 			pkt.ip4.src:set(ips[ip_index])
 
 			-- Linux ephemeral port range, 32768 to 60999
-			local dest_port = math.random(32768,61000)
+			local dest_port = math.random(32768,60999)
 			pkt.udp.dst = dest_port
 		end 
 
