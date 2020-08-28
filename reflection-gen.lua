@@ -4,6 +4,7 @@ local device	= require "device"
 local stats		= require "stats"
 local log 		= require "log"
 
+-- IP address of the test resolver
 local CONTROL = "8.8.8.8"
 
 function configure(parser)
@@ -30,19 +31,8 @@ function master(args)
 end
 
 function loadTrafficGenerator(queue, dev, thread, sources, service_port)
-	local ips = {}
-
 	print("Device #" .. dev ..  " Thread #" .. thread .. ": Generating random source IPs")
-	for source=0, sources, 1 do
-		local ip = tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255))
-		local ip, valid = parseIPAddress(ip)
-		-- make sure the IP generated does not clash with our test resolver
-		while ip == CONTROL or not valid do
-			ip = tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255))
-			ip, valid = parseIPAddress(ip)
-		end
-		table.insert(ips, ip)
-	end
+	local ip_list = generateAttackSources(sources)
 	
 	local packetLen = 60
 	local mem = memory.createMemPool(function(buf)
@@ -50,8 +40,9 @@ function loadTrafficGenerator(queue, dev, thread, sources, service_port)
 			ethSrc = queue,
 			ethDst = "aa:bb:cc:dd:ee:ff",
 			ip4Src = "10.0.0.1",
-			ip4Dst = "10.0.0.2",
+			-- ip4Dst = "10.0.0.2",
 			udpSrc = service_port,
+			-- udpDst = 1024
 			pktLength = packetLen
 		}
 	end)
@@ -65,9 +56,9 @@ function loadTrafficGenerator(queue, dev, thread, sources, service_port)
 
 		for j, buf in ipairs(bufs) do 			
 			local pkt = buf:getUdpPacket(ipv4)
-			
+
 			local ip_index = math.random(1, sources)
-			pkt.ip4.src:set(ips[ip_index])
+			pkt.ip4.src:set(ip_list[ip_index])
 
 			-- Linux ephemeral port range, 32768 to 60999
 			local dest_port = math.random(32768,60999)
@@ -76,9 +67,29 @@ function loadTrafficGenerator(queue, dev, thread, sources, service_port)
 
 		--offload checksums to NIC
 		bufs:offloadTcpChecksums(ipv4)
-
 		queue:send(bufs)
 		txStats:update()	
 	end
 	txStats:finalize()
+end
+
+function generateAttackSources(sources)
+	local ip_list = {}
+	local ip_set = {}
+	for source=0, sources, 1 do
+		local ip = tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255))
+		local ip, valid = parseIPAddress(ip)
+
+		-- make sure the IP generated:
+		-- 1. is a valid IP address
+		-- 2. does not clash with our test resolver
+		-- 3. is not a duplicated
+		while not valid or ip == CONTROL or ip_set[ip] do
+			ip = tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255)) .. "." .. tostring(math.random(0,255))
+			ip, valid = parseIPAddress(ip)
+		end
+		table.insert(ip_list, ip)
+		ip_set[ip] = true
+	end
+	return ip_list
 end
