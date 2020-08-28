@@ -13,7 +13,7 @@ function configure(parser)
 	parser:option("-r --rate", "Transmit rate in Mbit/s."):default(10000):convert(tonumber)
 	parser:option("-t --threads", "Number of threads."):default(1):convert(tonumber)
 	parser:option("-f --sources", "Number of different source IPs to use."):default(7000):convert(tonumber)
-	parser:option("-p --port", "Source/ service port to use, e.g., port 53 for DNS.")
+	parser:option("-p --port", "Source/ service port to use, e.g., port 53 for DNS."):default(53):convert(tonumber)
 end
 
 function master(args)
