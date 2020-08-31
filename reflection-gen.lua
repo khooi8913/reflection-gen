@@ -17,7 +17,7 @@ function configure(parser)
 end
 
 function master(args)
-	-- print("Generating random source IPs. " .. args.source .. " of them!")
+	print("Generating random source IPs. " .. tostring(args.sources) .. " of them!")
 	local ip_list = generateAttackSources(args.sources)
 
 	for i, dev in ipairs(args.dev) do
