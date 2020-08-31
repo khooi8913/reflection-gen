@@ -17,6 +17,9 @@ function configure(parser)
 end
 
 function master(args)
+	-- print("Generating random source IPs. " .. args.source .. " of them!")
+	local ip_list = generateAttackSources(args.sources)
+
 	for i, dev in ipairs(args.dev) do
 		local dev = device.config{port = dev, txQueues = args.threads}
 		dev:wait()
@@ -24,16 +27,13 @@ function master(args)
 		for thread=1, args.threads do
 			local queue = dev:getTxQueue(thread-1)
 			queue:setRate(args.rate / args.threads)
-			mg.startTask("loadTrafficGenerator", queue, i, thread, args.sources, args.port)
+			mg.startTask("loadTrafficGenerator", queue, i, thread, args.sources, args.port, ip_list)
 		end
 	end
 	mg.waitForTasks()
 end
 
-function loadTrafficGenerator(queue, dev, thread, sources, service_port)
-	print("Device #" .. dev ..  " Thread #" .. thread .. ": Generating random source IPs")
-	local ip_list = generateAttackSources(sources)
-	
+function loadTrafficGenerator(queue, dev, thread, sources, service_port, ip_list)
 	local packetLen = 60
 	local mem = memory.createMemPool(function(buf)
 		buf:getUdpPacket(ipv4):fill{ 
