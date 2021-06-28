@@ -21,11 +21,11 @@ function master(args)
 	local ip_list = generateAttackSources(args.sources)
 
 	for i, dev in ipairs(args.dev) do
-		local dev = device.config{port = dev, txQueues = args.threads}
+		local ddev = device.config{port = dev, txQueues = args.threads}
 		dev:wait()
 
 		for thread=1, args.threads do
-			local queue = dev:getTxQueue(thread-1)
+			local queue = ddev:getTxQueue(thread-1)
 			queue:setRate(args.rate / args.threads)
 			mg.startTask("loadTrafficGenerator", queue, i, thread, args.sources, args.port, ip_list)
 		end
