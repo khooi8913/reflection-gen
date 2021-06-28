@@ -22,7 +22,7 @@ function master(args)
 
 	for i, dev in ipairs(args.dev) do
 		local ddev = device.config{port = dev, txQueues = args.threads}
-		dev:wait()
+		ddev:wait()
 
 		for thread=1, args.threads do
 			local queue = ddev:getTxQueue(thread-1)
